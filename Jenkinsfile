@@ -1,12 +1,18 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.11-alpine'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
     
     stages {
+        stage('Install Python and pip') {
+            steps {
+                sh '''
+                    apt-get update -y
+                    apt-get install -y python3 python3-pip
+                    python3 --version
+                    pip3 --version
+                '''
+            }
+        }
+        
         stage('Checkout') {
             steps {
                 echo 'Cloning repository...'
@@ -16,27 +22,27 @@ pipeline {
         
         stage('Install dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
-            }
-        }
-        
-        stage('Unit Tests') {
-            steps {
-                echo 'Running unit tests (if any)...'
-                sh 'echo "No unit tests configured"'
+                sh 'pip3 install -r requirements.txt'
             }
         }
         
         stage('Integration Test') {
             steps {
-                echo 'Starting integration test...'
+                echo ' Starting integration test...'
                 script {
                     try {
-                        sh 'python integration_test.py'
+                        sh 'python3 integration_test.py'
                     } catch (Exception e) {
                         error('Integration test failed!')
                     }
                 }
+            }
+        }
+        
+        stage('Cleanup') {
+            steps {
+                echo 'Cleaning up...'
+                sh 'pkill -f "python3 service" || true'
             }
         }
     }
@@ -44,10 +50,9 @@ pipeline {
     post {
         always {
             echo 'Pipeline finished'
-            sh 'pkill -f "python service" || true'
         }
         success {
-            echo ' All tests passed!'
+            echo 'All tests passed!'
         }
         failure {
             echo ' Pipeline failed!'
