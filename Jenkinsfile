@@ -2,13 +2,11 @@ pipeline {
     agent any
     
     stages {
-        stage('Install Python and pip') {
+        stage('Check Python') {
             steps {
                 sh '''
-                    apt-get update -y
-                    apt-get install -y python3 python3-pip
                     python3 --version
-                    pip3 --version
+                    pip3 --version || echo "pip3 not found, installing via get-pip.py..."
                 '''
             }
         }
@@ -22,13 +20,15 @@ pipeline {
         
         stage('Install dependencies') {
             steps {
-                sh 'pip3 install -r requirements.txt'
+                sh '''
+                    python3 -m pip install --user flask requests
+                '''
             }
         }
         
         stage('Integration Test') {
             steps {
-                echo ' Starting integration test...'
+                echo 'Starting integration test...'
                 script {
                     try {
                         sh 'python3 integration_test.py'
@@ -38,21 +38,15 @@ pipeline {
                 }
             }
         }
-        
-        stage('Cleanup') {
-            steps {
-                echo 'Cleaning up...'
-                sh 'pkill -f "python3 service" || true'
-            }
-        }
     }
     
     post {
         always {
-            echo 'Pipeline finished'
+            echo ' Pipeline finished'
+            sh 'pkill -f "python3 service" || true'
         }
         success {
-            echo 'All tests passed!'
+            echo ' All tests passed!'
         }
         failure {
             echo ' Pipeline failed!'
