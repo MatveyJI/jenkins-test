@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.11-alpine'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
     
     stages {
         stage('Checkout') {
@@ -32,13 +37,6 @@ pipeline {
                         error('Integration test failed!')
                     }
                 }
-            }
-        }
-        
-        stage('Cleanup') {
-            steps {
-                echo 'Cleaning up after tests...'
-                sh 'pkill -f "python service" || true'
             }
         }
     }
