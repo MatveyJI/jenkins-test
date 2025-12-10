@@ -1,22 +1,58 @@
 pipeline {
     agent any
+    
     stages {
-        stage('Clone') {
+        stage('Checkout') {
             steps {
                 echo 'Cloning repository...'
+                checkout scm
             }
         }
-        stage('Build') {
+        
+        stage('Install dependencies') {
             steps {
-                echo 'Building...'
-                sh 'echo "Build step"'
+                sh 'pip install -r requirements.txt'
             }
         }
-        stage('Test') {
+        
+        stage('Unit Tests') {
             steps {
-                echo 'Testing...'
-                sh 'echo "Test step"'
+                echo 'Running unit tests (if any)...'
+                sh 'echo "No unit tests configured"'
             }
+        }
+        
+        stage('Integration Test') {
+            steps {
+                echo 'Starting integration test...'
+                script {
+                    try {
+                        sh 'python integration_test.py'
+                    } catch (Exception e) {
+                        error('Integration test failed!')
+                    }
+                }
+            }
+        }
+        
+        stage('Cleanup') {
+            steps {
+                echo 'Cleaning up after tests...'
+                sh 'pkill -f "python service" || true'
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline finished'
+            sh 'pkill -f "python service" || true'
+        }
+        success {
+            echo ' All tests passed!'
+        }
+        failure {
+            echo ' Pipeline failed!'
         }
     }
 }
